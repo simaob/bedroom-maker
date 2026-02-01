@@ -74,6 +74,18 @@
             <h2 class="text-lg font-semibold text-foreground mb-1">🏠 Bedroom Designer</h2>
             <p class="text-xs text-muted-foreground">Plan your space</p>
         </div>
+
+        <!-- Project Name -->
+        <div class="mb-6">
+            <label class="block text-xs font-medium text-foreground mb-1.5">Project Name</label>
+            <input 
+                type="text" 
+                id="projectName" 
+                placeholder="My Bedroom" 
+                class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                value="My Bedroom"
+            >
+        </div>
         
         <!-- Drawing Tools -->
         <div class="mb-6">
@@ -154,7 +166,13 @@
         let selectedElementIndex = null;
         let isDragging = false;
         let dragOffset = null;
+        let projectName = 'My Bedroom';
         const scale = 100; // 100 pixels = 1 meter
+
+        // Project name input
+        document.getElementById('projectName').addEventListener('input', (e) => {
+            projectName = e.target.value || 'My Bedroom';
+        });
 
         // Tool buttons
         document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -936,9 +954,11 @@
         }
 
         function saveToJSON() {
+            const now = new Date();
             const data = {
                 version: '1.0',
-                created: new Date().toISOString(),
+                projectName: projectName,
+                created: now.toISOString(),
                 scale: scale,
                 elements: elements
             };
@@ -947,9 +967,14 @@
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
+            // Create filename from project name and date
+            const dateStr = now.toISOString().slice(0, 10);
+            const safeName = projectName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+            const filename = `${safeName}-${dateStr}.json`;
+            
             const a = document.createElement('a');
             a.href = url;
-            a.download = `bedroom-design-${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -968,9 +993,16 @@
                     if (data.elements && Array.isArray(data.elements)) {
                         elements = data.elements;
                         selectedElementIndex = null;
+                        
+                        // Restore project name if available
+                        if (data.projectName) {
+                            projectName = data.projectName;
+                            document.getElementById('projectName').value = data.projectName;
+                        }
+                        
                         updateElementList();
                         redraw();
-                        alert('Design loaded successfully!');
+                        alert(`Design "${data.projectName || 'Untitled'}" loaded successfully!`);
                     } else {
                         alert('Invalid file format');
                     }
