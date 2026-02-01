@@ -665,7 +665,7 @@
             editSection.style.display = 'block';
             const element = elements[selectedElementIndex];
             
-            if (element.type === 'wall' || element.type === 'door' || element.type === 'window' || element.type === 'dimension' || element.type === 'wardrobe' || element.type === 'radiator') {
+            if (element.type === 'wall' || element.type === 'door' || element.type === 'window' || element.type === 'dimension' || element.type === 'radiator') {
                 const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
                 const showLabel = element.showLabel !== false;
                 editControls.innerHTML = `
@@ -675,6 +675,25 @@
                             <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
                         </div>
                         <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateElementLength()">Update Length</button>
+                        <div class="pt-3 border-t border-border">
+                            <label class="flex items-center cursor-pointer text-sm">
+                                <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                                <span class="text-foreground">Show dimension label</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            } else if (element.type === 'wardrobe') {
+                const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+                const showLabel = element.showLabel !== false;
+                editControls.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                            <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                        </div>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateElementLength()">Update Length</button>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" onclick="rotateFurniture()">↻ Rotate 90°</button>
                         <div class="pt-3 border-t border-border">
                             <label class="flex items-center cursor-pointer text-sm">
                                 <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
@@ -698,6 +717,7 @@
                             <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editWidth" value="${width.toFixed(3)}">
                         </div>
                         <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateFurnitureDimensions()">Update Dimensions</button>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" onclick="rotateFurniture()">↻ Rotate 90°</button>
                         <div class="pt-3 border-t border-border">
                             <label class="flex items-center cursor-pointer text-sm">
                                 <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
@@ -769,6 +789,43 @@
             
             const checkbox = document.getElementById('showLabelCheckbox');
             elements[selectedElementIndex].showLabel = checkbox.checked;
+            
+            updateElementList();
+            redraw();
+        }
+
+        function rotateFurniture() {
+            if (selectedElementIndex === null) return;
+            
+            const element = elements[selectedElementIndex];
+            if (element.type !== 'bed' && element.type !== 'bookshelf' && element.type !== 'wardrobe') return;
+            
+            // Calculate center point
+            const centerX = (element.start.x + element.end.x) / 2;
+            const centerY = (element.start.y + element.end.y) / 2;
+            
+            // Calculate current angle and length
+            const currentAngle = Math.atan2(element.end.y - element.start.y, element.end.x - element.start.x);
+            const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2));
+            
+            // New angle is 90 degrees (π/2 radians) clockwise
+            const newAngle = currentAngle + Math.PI / 2;
+            
+            // Calculate new start and end points
+            element.start.x = centerX - (length / 2) * Math.cos(newAngle);
+            element.start.y = centerY - (length / 2) * Math.sin(newAngle);
+            element.end.x = centerX + (length / 2) * Math.cos(newAngle);
+            element.end.y = centerY + (length / 2) * Math.sin(newAngle);
+            
+            // Preserve width if it exists
+            if (element.end.width) {
+                const width = element.end.width;
+                element.end = {
+                    x: element.end.x,
+                    y: element.end.y,
+                    width: width
+                };
+            }
             
             updateElementList();
             redraw();
