@@ -4,339 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bedroom Designer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        input: "hsl(214.3 31.8% 91.4%)",
+                        ring: "hsl(221.2 83.2% 53.3%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        primary: {
+                            DEFAULT: "hsl(221.2 83.2% 53.3%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(0 84.2% 60.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            height: 100vh;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-
-        .sidebar {
-            width: 250px;
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .properties-panel {
-            width: 300px;
-            background: white;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-        }
-
-        .properties-panel h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #2c3e50;
-        }
-
-        .element-list {
-            margin-bottom: 20px;
-        }
-
-        .element-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .element-item:hover {
-            background: #e9ecef;
-        }
-
-        .element-item.selected {
-            background: #d4edff;
-            border-color: #3498db;
-        }
-
-        .element-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .element-item-details {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .delete-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .delete-btn:hover {
-            background: #c0392b;
-        }
-
-        .edit-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-
-        .edit-section h3 {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
-
-        .edit-input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .edit-btn {
-            width: 100%;
-            padding: 8px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .edit-btn:hover {
-            background: #2980b9;
-        }
-
-        .sidebar h2 {
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-
-        .tool-section {
-            margin-bottom: 25px;
-        }
-
-        .tool-section h3 {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: #ecf0f1;
-        }
-
-        .tool-btn {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 8px;
-            background: #34495e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .tool-btn:hover {
-            background: #4a6278;
-        }
-
-        .tool-btn.active {
-            background: #3498db;
-        }
-
-        .input-group {
-            margin-bottom: 10px;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 12px;
-            margin-bottom: 5px;
-            color: #bdc3c7;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 8px;
-            border: none;
-            border-radius: 4px;
-            background: #34495e;
-            color: white;
-        }
-
-        .canvas-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
-
-        .toolbar {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .toolbar button {
-            padding: 8px 16px;
-            margin-right: 10px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .toolbar button:hover {
-            background: #c0392b;
-        }
-
+        
         canvas {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: crosshair;
         }
-
-        .instructions {
-            margin-top: 15px;
-            padding: 15px;
-            background: #3498db;
-            color: white;
-            border-radius: 4px;
-            font-size: 13px;
+        
+        .tool-btn {
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .element-item {
+            transition: all 0.15s;
         }
     </style>
 </head>
-<body>
-    <div class="sidebar">
-        <h2>🏠 Bedroom Designer</h2>
+<body class="flex h-screen bg-slate-50 overflow-hidden">
+    <!-- Sidebar -->
+    <div class="w-64 bg-white border-r border-border p-4 overflow-y-auto flex-shrink-0">
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground mb-1">🏠 Bedroom Designer</h2>
+            <p class="text-xs text-muted-foreground">Plan your space</p>
+        </div>
         
-        <div class="tool-section">
-            <h3>Drawing Tools</h3>
-            <button class="tool-btn active" data-tool="wall">📏 Draw Wall</button>
-            <button class="tool-btn" data-tool="door">🚪 Add Door</button>
-            <button class="tool-btn" data-tool="window">🪟 Add Window</button>
-            <button class="tool-btn" data-tool="wardrobe">🚪 Add Wardrobe</button>
-            <button class="tool-btn" data-tool="radiator">🔥 Add Radiator</button>
-            <button class="tool-btn" data-tool="bed">🛏️ Add Bed</button>
-            <button class="tool-btn" data-tool="bookshelf">📚 Add Bookshelf</button>
-            <button class="tool-btn" data-tool="dimension">📐 Add Dimension</button>
-            <button class="tool-btn" data-tool="point">📍 Mark Point</button>
-        </div>
-
-        <div class="tool-section">
-            <h3>Wall Properties</h3>
-            <div class="input-group">
-                <label>Wall Length (m)</label>
-                <input type="number" id="wallLength" step="0.1" value="4.0">
+        <!-- Drawing Tools -->
+        <div class="mb-6">
+            <h3 class="text-sm font-medium text-foreground mb-3">Drawing Tools</h3>
+            <div class="space-y-1">
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" data-tool="wall">📏 Wall</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="door">🚪 Door</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="window">🪟 Window</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="wardrobe">🚪 Wardrobe</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="radiator">🔥 Radiator</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="bed">🛏️ Bed</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="bookshelf">📚 Bookshelf</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="dimension">📐 Dimension</button>
+                <button class="tool-btn w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" data-tool="point">📍 Point</button>
             </div>
         </div>
 
-        <div class="tool-section">
-            <h3>Door Properties</h3>
-            <div class="input-group">
-                <label>Door Width (m)</label>
-                <input type="number" id="doorWidth" step="0.1" value="0.9">
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <h3>Window Properties</h3>
-            <div class="input-group">
-                <label>Window Width (m)</label>
-                <input type="number" id="windowWidth" step="0.1" value="1.2">
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <h3>Wardrobe Properties</h3>
-            <div class="input-group">
-                <label>Wardrobe Width (m)</label>
-                <input type="number" id="wardrobeWidth" step="0.1" value="2.0">
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <h3>Radiator Properties</h3>
-            <div class="input-group">
-                <label>Radiator Width (m)</label>
-                <input type="number" id="radiatorWidth" step="0.1" value="1.0">
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <h3>Bed Properties</h3>
-            <div class="input-group">
-                <label>Bed Length (m)</label>
-                <input type="number" id="bedLength" step="0.1" value="2.0">
-            </div>
-            <div class="input-group">
-                <label>Bed Width (m)</label>
-                <input type="number" id="bedWidth" step="0.1" value="1.4">
-            </div>
-        </div>
-
-        <div class="tool-section">
-            <h3>Bookshelf Properties</h3>
-            <div class="input-group">
-                <label>Bookshelf Length (m)</label>
-                <input type="number" id="bookshelfLength" step="0.1" value="0.8">
-            </div>
-            <div class="input-group">
-                <label>Bookshelf Width (m)</label>
-                <input type="number" id="bookshelfWidth" step="0.1" value="0.3">
-            </div>
-        </div>
-
-        <div class="instructions">
-            <strong>Instructions:</strong><br>
-            • Click to start drawing<br>
-            • Click again to finish<br>
-            • ESC or right-click to cancel/deselect<br>
-            • Drag selected furniture to move<br>
-            • Use dimension tool to measure distances
+        <!-- Instructions -->
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p class="text-xs text-blue-900 leading-relaxed">
+                <strong>Tips:</strong><br>
+                • Click to draw<br>
+                • ESC to cancel<br>
+                • Drag to move furniture<br>
+                • Edit dimensions in right panel
+            </p>
         </div>
     </div>
 
-    <div class="canvas-container">
-        <div class="toolbar">
-            <button onclick="clearCanvas()">🗑️ Clear All</button>
-            <button onclick="undo()">↶ Undo</button>
-            <button onclick="toggleGrid()">⊞ Toggle Grid</button>
-            <button onclick="saveToJSON()">💾 Save JSON</button>
-            <button onclick="document.getElementById('fileInput').click()">📂 Load JSON</button>
-            <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadFromJSON(event)">
+    <!-- Canvas Container -->
+    <div class="flex-1 flex flex-col p-4 overflow-hidden">
+        <!-- Toolbar -->
+        <div class="mb-4 flex items-center gap-2 bg-white p-3 rounded-lg border border-border shadow-sm">
+            <button onclick="clearCanvas()" class="px-3 py-1.5 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                🗑️ Clear
+            </button>
+            <button onclick="undo()" class="px-3 py-1.5 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                ↶ Undo
+            </button>
+            <button onclick="toggleGrid()" class="px-3 py-1.5 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                ⊞ Grid
+            </button>
+            <div class="flex-1"></div>
+            <button onclick="saveToJSON()" class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
+                💾 Save
+            </button>
+            <button onclick="document.getElementById('fileInput').click()" class="px-3 py-1.5 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                📂 Load
+            </button>
+            <input type="file" id="fileInput" accept=".json" class="hidden" onchange="loadFromJSON(event)">
         </div>
-        <canvas id="canvas" width="1200" height="800"></canvas>
+        
+        <!-- Canvas -->
+        <canvas id="canvas" width="1200" height="800" class="flex-1 bg-white rounded-lg border border-border shadow-sm"></canvas>
     </div>
 
-    <div class="properties-panel">
-        <h2>📋 Elements</h2>
-        <div class="element-list" id="elementList"></div>
+    <!-- Properties Panel -->
+    <div class="w-80 bg-white border-l border-border p-4 overflow-y-auto flex-shrink-0">
+        <h2 class="text-lg font-semibold text-foreground mb-4">📋 Elements</h2>
+        <div id="elementList" class="space-y-2 mb-6"></div>
         
-        <div class="edit-section" id="editSection" style="display: none;">
-            <h3>Edit Selected</h3>
+        <div id="editSection" class="hidden mt-6 pt-6 border-t border-border">
+            <h3 class="text-sm font-semibold text-foreground mb-3">Edit Selected</h3>
             <div id="editControls"></div>
         </div>
     </div>
@@ -359,8 +159,12 @@
         // Tool buttons
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
+                document.querySelectorAll('.tool-btn').forEach(b => {
+                    b.classList.remove('bg-primary', 'text-primary-foreground');
+                    b.classList.add('bg-secondary', 'text-secondary-foreground');
+                });
+                e.target.classList.remove('bg-secondary', 'text-secondary-foreground');
+                e.target.classList.add('bg-primary', 'text-primary-foreground');
                 currentTool = e.target.dataset.tool;
                 isDrawing = false;
                 startPoint = null;
@@ -756,13 +560,18 @@
             listEl.innerHTML = '';
             
             if (elements.length === 0) {
-                listEl.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">No elements yet</div>';
+                listEl.innerHTML = '<div class="text-center py-8 text-sm text-muted-foreground">No elements yet</div>';
                 return;
             }
             
             elements.forEach((element, index) => {
                 const item = document.createElement('div');
-                item.className = 'element-item' + (index === selectedElementIndex ? ' selected' : '');
+                const isSelectedItem = index === selectedElementIndex;
+                item.className = `element-item p-3 rounded-md border-2 cursor-pointer ${
+                    isSelectedItem 
+                        ? 'bg-blue-50 border-primary' 
+                        : 'bg-secondary border-transparent hover:bg-accent'
+                }`;
                 
                 let icon = '';
                 let details = '';
@@ -807,11 +616,11 @@
                 }
                 
                 item.innerHTML = `
-                    <div class="element-item-header">
-                        <span>${icon} ${element.type.charAt(0).toUpperCase() + element.type.slice(1)} #${index + 1}</span>
-                        <button class="delete-btn" onclick="deleteElement(${index}); event.stopPropagation();">Delete</button>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-medium text-foreground">${icon} ${element.type.charAt(0).toUpperCase() + element.type.slice(1)} #${index + 1}</span>
+                        <button class="px-2 py-0.5 text-xs font-medium rounded bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick="deleteElement(${index}); event.stopPropagation();">Delete</button>
                     </div>
-                    <div class="element-item-details">${details}</div>
+                    <div class="text-xs text-muted-foreground">${details}</div>
                 `;
                 
                 item.onclick = () => selectElement(index);
@@ -842,36 +651,52 @@
                 const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
                 const showLabel = element.showLabel !== false;
                 editControls.innerHTML = `
-                    <label style="display: block; margin-bottom: 5px; font-size: 12px;">Length (m):</label>
-                    <input type="number" step="0.001" class="edit-input" id="editLength" value="${length.toFixed(3)}">
-                    <button class="edit-btn" onclick="updateElementLength()">Update Length</button>
-                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">
-                        <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" style="margin-right: 8px;">
-                        Show dimension label
-                    </label>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                            <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                        </div>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateElementLength()">Update Length</button>
+                        <div class="pt-3 border-t border-border">
+                            <label class="flex items-center cursor-pointer text-sm">
+                                <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                                <span class="text-foreground">Show dimension label</span>
+                            </label>
+                        </div>
+                    </div>
                 `;
             } else if (element.type === 'bed' || element.type === 'bookshelf') {
                 const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
                 const width = element.end.width || (element.type === 'bed' ? 1.4 : 0.3);
                 const showLabel = element.showLabel !== false;
                 editControls.innerHTML = `
-                    <label style="display: block; margin-bottom: 5px; font-size: 12px;">Length (m):</label>
-                    <input type="number" step="0.001" class="edit-input" id="editLength" value="${length.toFixed(3)}">
-                    <label style="display: block; margin-bottom: 5px; margin-top: 10px; font-size: 12px;">Width (m):</label>
-                    <input type="number" step="0.001" class="edit-input" id="editWidth" value="${width.toFixed(3)}">
-                    <button class="edit-btn" onclick="updateFurnitureDimensions()">Update Dimensions</button>
-                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px;">
-                        <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" style="margin-right: 8px;">
-                        Show dimension label
-                    </label>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                            <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">Width (m)</label>
+                            <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editWidth" value="${width.toFixed(3)}">
+                        </div>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateFurnitureDimensions()">Update Dimensions</button>
+                        <div class="pt-3 border-t border-border">
+                            <label class="flex items-center cursor-pointer text-sm">
+                                <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                                <span class="text-foreground">Show dimension label</span>
+                            </label>
+                        </div>
+                    </div>
                 `;
             } else if (element.type === 'point') {
                 editControls.innerHTML = `
-                    <label style="display: block; margin-bottom: 5px; font-size: 12px;">Label:</label>
-                    <input type="text" class="edit-input" id="editLabel" value="${element.label || ''}">
-                    <button class="edit-btn" onclick="updatePointLabel()">Update Label</button>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-foreground mb-1.5">Label</label>
+                            <input type="text" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLabel" value="${element.label || ''}">
+                        </div>
+                        <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updatePointLabel()">Update Label</button>
+                    </div>
                 `;
             }
         }
