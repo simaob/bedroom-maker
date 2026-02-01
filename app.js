@@ -1,0 +1,922 @@
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let currentTool = 'wall';
+let isDrawing = false;
+let startPoint = null;
+let elements = [];
+let tempElement = null;
+let showGrid = true;
+let selectedElementIndex = null;
+let isDragging = false;
+let dragOffset = null;
+let projectName = 'My Bedroom';
+const scale = 100; // 100 pixels = 1 meter
+
+// Project name input
+document.getElementById('projectName').addEventListener('input', (e) => {
+    projectName = e.target.value || 'My Bedroom';
+});
+
+// Tool buttons
+document.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tool-btn').forEach(b => {
+            b.classList.remove('bg-primary', 'text-primary-foreground');
+            b.classList.add('bg-secondary', 'text-secondary-foreground');
+        });
+        e.target.classList.remove('bg-secondary', 'text-secondary-foreground');
+        e.target.classList.add('bg-primary', 'text-primary-foreground');
+        currentTool = e.target.dataset.tool;
+        isDrawing = false;
+        startPoint = null;
+        tempElement = null;
+        redraw();
+    });
+});
+
+function drawGrid() {
+    if (!showGrid) return;
+    
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    
+    // Draw vertical lines every meter (50px)
+    for (let x = 0; x < canvas.width; x += scale) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Draw horizontal lines every meter (50px)
+    for (let y = 0; y < canvas.height; y += scale) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+}
+
+function snapToGrid(point) {
+    return {
+        x: Math.round(point.x / (scale / 10)) * (scale / 10),
+        y: Math.round(point.y / (scale / 10)) * (scale / 10)
+    };
+}
+
+function drawWall(start, end, isTemp = false, isSelected = false, showLabel = true) {
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : (isTemp ? '#3498db' : '#2c3e50');
+    ctx.lineWidth = isSelected ? 6 : 4;
+    ctx.lineCap = 'round';
+    
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+    
+    // Draw length label
+    if (showLabel) {
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
+        const length = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)) / scale;
+        
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#2c3e50';
+        ctx.font = '14px Arial';
+        ctx.fillText(length.toFixed(3) + 'm', midX + 10, midY - 10);
+    }
+}
+
+function drawDoor(start, end, isSelected = false, showLabel = true) {
+    const width = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Door frame
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#8B4513';
+    ctx.lineWidth = isSelected ? 6 : 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.stroke();
+    
+    // Door arc
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#A0522D';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, width, 0, Math.PI / 2);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const length = width / scale;
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#8B4513';
+        ctx.font = '12px Arial';
+        ctx.fillText(length.toFixed(2) + 'm', start.x + 10, start.y - 10);
+    }
+}
+
+function drawWindow(start, end, isSelected = false, showLabel = true) {
+    const width = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Window frame
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#4169E1';
+    ctx.fillStyle = isSelected ? '#ffcccc' : '#87CEEB';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.fillRect(0, -3, width, 6);
+    ctx.strokeRect(0, -3, width, 6);
+    
+    // Window panes
+    ctx.beginPath();
+    ctx.moveTo(width / 2, -3);
+    ctx.lineTo(width / 2, 3);
+    ctx.stroke();
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const length = width / scale;
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#4169E1';
+        ctx.font = '12px Arial';
+        ctx.fillText(length.toFixed(2) + 'm', start.x + 10, start.y - 15);
+    }
+}
+
+function drawWardrobe(start, end, isSelected = false, showLabel = true) {
+    const width = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Wardrobe body
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#8B4513';
+    ctx.fillStyle = isSelected ? '#ffddcc' : '#DEB887';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.fillRect(0, -5, width, 10);
+    ctx.strokeRect(0, -5, width, 10);
+    
+    // Door divisions
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#654321';
+    ctx.lineWidth = 1;
+    const divisions = Math.max(2, Math.floor(width / 50));
+    for (let i = 1; i < divisions; i++) {
+        ctx.beginPath();
+        ctx.moveTo((width / divisions) * i, -5);
+        ctx.lineTo((width / divisions) * i, 5);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const length = width / scale;
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#8B4513';
+        ctx.font = '12px Arial';
+        ctx.fillText(length.toFixed(2) + 'm', start.x + 10, start.y + 15);
+    }
+}
+
+function drawRadiator(start, end, isSelected = false, showLabel = true) {
+    const width = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Radiator body
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#C0C0C0';
+    ctx.fillStyle = isSelected ? '#ffcccc' : '#E8E8E8';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.fillRect(0, -2.5, width, 5);
+    ctx.strokeRect(0, -2.5, width, 5);
+    
+    // Radiator fins
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#A0A0A0';
+    ctx.lineWidth = 0.5;
+    const fins = Math.floor(width / 10);
+    for (let i = 0; i <= fins; i++) {
+        ctx.beginPath();
+        ctx.moveTo((width / fins) * i, -2.5);
+        ctx.lineTo((width / fins) * i, 2.5);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const length = width / scale;
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#808080';
+        ctx.font = '12px Arial';
+        ctx.fillText(length.toFixed(2) + 'm', start.x + 10, start.y - 8);
+    }
+}
+
+function drawBed(start, end, isSelected = false, showLabel = true) {
+    const length = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Bed frame/mattress - width is stored in element.width or use default
+    const width = (end.width || 1.4) * scale;
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#8B6914';
+    ctx.fillStyle = isSelected ? '#ffddcc' : '#F5DEB3';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.fillRect(0, -width/2, length, width);
+    ctx.strokeRect(0, -width/2, length, width);
+    
+    // Pillow area (showing which is the head)
+    ctx.fillStyle = isSelected ? '#ffcccc' : '#FAEBD7';
+    ctx.fillRect(0, -width/2 + 5, length * 0.25, width - 10);
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const lengthM = length / scale;
+        const widthM = (end.width || 1.4);
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#8B6914';
+        ctx.font = '12px Arial';
+        ctx.fillText(`${lengthM.toFixed(2)}m × ${widthM.toFixed(2)}m`, start.x + 10, start.y + width/2 + 15);
+    }
+}
+
+function drawBookshelf(start, end, isSelected = false, showLabel = true) {
+    const length = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    
+    ctx.save();
+    ctx.translate(start.x, start.y);
+    ctx.rotate(angle);
+    
+    // Bookshelf body - width is stored in element.width or use default
+    const width = (end.width || 0.3) * scale;
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#654321';
+    ctx.fillStyle = isSelected ? '#ffddcc' : '#D2691E';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.fillRect(0, -width/2, length, width);
+    ctx.strokeRect(0, -width/2, length, width);
+    
+    // Shelves (horizontal lines)
+    ctx.strokeStyle = isSelected ? '#ff6b6b' : '#8B4513';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, -width/2 + (width / 4) * i);
+        ctx.lineTo(length, -width/2 + (width / 4) * i);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+    
+    // Label
+    if (showLabel) {
+        const lengthM = length / scale;
+        const widthM = (end.width || 0.3);
+        ctx.fillStyle = isSelected ? '#ff6b6b' : '#654321';
+        ctx.font = '12px Arial';
+        ctx.fillText(`${lengthM.toFixed(2)}m × ${widthM.toFixed(2)}m`, start.x + 10, start.y + width/2 + 15);
+    }
+}
+
+function drawDimension(start, end) {
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // Arrows
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    drawArrow(start.x, start.y, angle);
+    drawArrow(end.x, end.y, angle + Math.PI);
+    
+    // Distance label
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+    const distance = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)) / scale;
+    
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillRect(midX - 30, midY - 15, 60, 20);
+    ctx.fillStyle = 'white';
+    ctx.fillText(distance.toFixed(2) + 'm', midX - 25, midY);
+}
+
+function drawArrow(x, y, angle) {
+    const len = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - len * Math.cos(angle - Math.PI / 6), y - len * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - len * Math.cos(angle + Math.PI / 6), y - len * Math.sin(angle + Math.PI / 6));
+    ctx.stroke();
+}
+
+function drawPoint(point, label) {
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '12px Arial';
+    ctx.fillText(label || '📍', point.x + 10, point.y - 10);
+}
+
+function redraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+    
+    // Draw all saved elements
+    elements.forEach((element, index) => {
+        const isSelected = index === selectedElementIndex;
+        const showLabel = element.showLabel !== false; // default to true
+        switch (element.type) {
+            case 'wall':
+                drawWall(element.start, element.end, false, isSelected, showLabel);
+                break;
+            case 'door':
+                drawDoor(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'window':
+                drawWindow(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'wardrobe':
+                drawWardrobe(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'radiator':
+                drawRadiator(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'bed':
+                drawBed(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'bookshelf':
+                drawBookshelf(element.start, element.end, isSelected, showLabel);
+                break;
+            case 'dimension':
+                drawDimension(element.start, element.end);
+                break;
+            case 'point':
+                drawPoint(element.point, element.label);
+                break;
+        }
+    });
+    
+    // Draw temporary element
+    if (tempElement && startPoint) {
+        switch (currentTool) {
+            case 'wall':
+                drawWall(startPoint, tempElement, true);
+                break;
+            case 'door':
+                drawDoor(startPoint, tempElement);
+                break;
+            case 'window':
+                drawWindow(startPoint, tempElement);
+                break;
+            case 'wardrobe':
+                drawWardrobe(startPoint, tempElement);
+                break;
+            case 'radiator':
+                drawRadiator(startPoint, tempElement);
+                break;
+            case 'bed':
+                drawBed(startPoint, tempElement);
+                break;
+            case 'bookshelf':
+                drawBookshelf(startPoint, tempElement);
+                break;
+            case 'dimension':
+                drawDimension(startPoint, tempElement);
+                break;
+        }
+    }
+}
+
+function updateElementList() {
+    const listEl = document.getElementById('elementList');
+    listEl.innerHTML = '';
+    
+    if (elements.length === 0) {
+        listEl.innerHTML = '<div class="text-center py-8 text-sm text-muted-foreground">No elements yet</div>';
+        return;
+    }
+    
+    elements.forEach((element, index) => {
+        const item = document.createElement('div');
+        const isSelectedItem = index === selectedElementIndex;
+        item.className = `element-item p-3 rounded-md border-2 cursor-pointer ${
+            isSelectedItem 
+                ? 'bg-blue-50 border-primary' 
+                : 'bg-secondary border-transparent hover:bg-accent'
+        }`;
+        
+        let icon = '';
+        let details = '';
+        
+        if (element.type === 'wall') {
+            icon = '📏';
+            const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Length: ${length.toFixed(3)}m`;
+        } else if (element.type === 'door') {
+            icon = '🚪';
+            const width = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Width: ${width.toFixed(2)}m`;
+        } else if (element.type === 'window') {
+            icon = '🪟';
+            const width = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Width: ${width.toFixed(2)}m`;
+        } else if (element.type === 'wardrobe') {
+            icon = '🚪';
+            const width = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Width: ${width.toFixed(2)}m`;
+        } else if (element.type === 'radiator') {
+            icon = '🔥';
+            const width = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Width: ${width.toFixed(2)}m`;
+        } else if (element.type === 'bed') {
+            icon = '🛏️';
+            const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            const width = element.end.width || 1.4;
+            details = `${length.toFixed(2)}m × ${width.toFixed(2)}m`;
+        } else if (element.type === 'bookshelf') {
+            icon = '📚';
+            const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            const width = element.end.width || 0.3;
+            details = `${length.toFixed(2)}m × ${width.toFixed(2)}m`;
+        } else if (element.type === 'dimension') {
+            icon = '📐';
+            const dist = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+            details = `Distance: ${dist.toFixed(3)}m`;
+        } else if (element.type === 'point') {
+            icon = '📍';
+            details = element.label || 'Point';
+        }
+        
+        item.innerHTML = `
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-sm font-medium text-foreground">${icon} ${element.type.charAt(0).toUpperCase() + element.type.slice(1)} #${index + 1}</span>
+                <button class="px-2 py-0.5 text-xs font-medium rounded bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick="deleteElement(${index}); event.stopPropagation();">Delete</button>
+            </div>
+            <div class="text-xs text-muted-foreground">${details}</div>
+        `;
+        
+        item.onclick = () => selectElement(index);
+        listEl.appendChild(item);
+    });
+}
+
+function selectElement(index) {
+    selectedElementIndex = index;
+    updateElementList();
+    showEditControls();
+    redraw();
+}
+
+function showEditControls() {
+    const editSection = document.getElementById('editSection');
+    const editControls = document.getElementById('editControls');
+    
+    if (selectedElementIndex === null) {
+        editSection.style.display = 'none';
+        return;
+    }
+    
+    editSection.style.display = 'block';
+    const element = elements[selectedElementIndex];
+    
+    if (element.type === 'wall' || element.type === 'door' || element.type === 'window' || element.type === 'dimension' || element.type === 'radiator') {
+        const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+        const showLabel = element.showLabel !== false;
+        editControls.innerHTML = `
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                    <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                </div>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateElementLength()">Update Length</button>
+                <div class="pt-3 border-t border-border">
+                    <label class="flex items-center cursor-pointer text-sm">
+                        <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                        <span class="text-foreground">Show dimension label</span>
+                    </label>
+                </div>
+            </div>
+        `;
+    } else if (element.type === 'wardrobe') {
+        const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+        const showLabel = element.showLabel !== false;
+        editControls.innerHTML = `
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                    <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                </div>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateElementLength()">Update Length</button>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" onclick="rotateFurniture()">↻ Rotate 90°</button>
+                <div class="pt-3 border-t border-border">
+                    <label class="flex items-center cursor-pointer text-sm">
+                        <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                        <span class="text-foreground">Show dimension label</span>
+                    </label>
+                </div>
+            </div>
+        `;
+    } else if (element.type === 'bed' || element.type === 'bookshelf') {
+        const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2)) / scale;
+        const width = element.end.width || (element.type === 'bed' ? 1.4 : 0.3);
+        const showLabel = element.showLabel !== false;
+        editControls.innerHTML = `
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-foreground mb-1.5">Length (m)</label>
+                    <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLength" value="${length.toFixed(3)}">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-foreground mb-1.5">Width (m)</label>
+                    <input type="number" step="0.001" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editWidth" value="${width.toFixed(3)}">
+                </div>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updateFurnitureDimensions()">Update Dimensions</button>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80" onclick="rotateFurniture()">↻ Rotate 90°</button>
+                <div class="pt-3 border-t border-border">
+                    <label class="flex items-center cursor-pointer text-sm">
+                        <input type="checkbox" id="showLabelCheckbox" ${showLabel ? 'checked' : ''} onchange="toggleElementLabel()" class="mr-2 rounded border-input">
+                        <span class="text-foreground">Show dimension label</span>
+                    </label>
+                </div>
+            </div>
+        `;
+    } else if (element.type === 'point') {
+        editControls.innerHTML = `
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-foreground mb-1.5">Label</label>
+                    <input type="text" class="w-full px-3 py-2 text-sm border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring" id="editLabel" value="${element.label || ''}">
+                </div>
+                <button class="w-full px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90" onclick="updatePointLabel()">Update Label</button>
+            </div>
+        `;
+    }
+}
+
+function updateElementLength() {
+    if (selectedElementIndex === null) return;
+    
+    const newLength = parseFloat(document.getElementById('editLength').value);
+    const element = elements[selectedElementIndex];
+    
+    const angle = Math.atan2(element.end.y - element.start.y, element.end.x - element.start.x);
+    element.end = {
+        x: element.start.x + newLength * scale * Math.cos(angle),
+        y: element.start.y + newLength * scale * Math.sin(angle),
+        width: element.end.width // preserve width if it exists
+    };
+    
+    updateElementList();
+    redraw();
+}
+
+function updateFurnitureDimensions() {
+    if (selectedElementIndex === null) return;
+    
+    const newLength = parseFloat(document.getElementById('editLength').value);
+    const newWidth = parseFloat(document.getElementById('editWidth').value);
+    const element = elements[selectedElementIndex];
+    
+    const angle = Math.atan2(element.end.y - element.start.y, element.end.x - element.start.x);
+    element.end = {
+        x: element.start.x + newLength * scale * Math.cos(angle),
+        y: element.start.y + newLength * scale * Math.sin(angle),
+        width: newWidth
+    };
+    
+    updateElementList();
+    redraw();
+}
+
+function updatePointLabel() {
+    if (selectedElementIndex === null) return;
+    
+    const newLabel = document.getElementById('editLabel').value;
+    elements[selectedElementIndex].label = newLabel;
+    
+    updateElementList();
+    redraw();
+}
+
+function toggleElementLabel() {
+    if (selectedElementIndex === null) return;
+    
+    const checkbox = document.getElementById('showLabelCheckbox');
+    elements[selectedElementIndex].showLabel = checkbox.checked;
+    
+    updateElementList();
+    redraw();
+}
+
+function rotateFurniture() {
+    if (selectedElementIndex === null) return;
+    
+    const element = elements[selectedElementIndex];
+    if (element.type !== 'bed' && element.type !== 'bookshelf' && element.type !== 'wardrobe') return;
+    
+    // Calculate center point
+    const centerX = (element.start.x + element.end.x) / 2;
+    const centerY = (element.start.y + element.end.y) / 2;
+    
+    // Calculate current angle and length
+    const currentAngle = Math.atan2(element.end.y - element.start.y, element.end.x - element.start.x);
+    const length = Math.sqrt(Math.pow(element.end.x - element.start.x, 2) + Math.pow(element.end.y - element.start.y, 2));
+    
+    // New angle is 90 degrees (π/2 radians) clockwise
+    const newAngle = currentAngle + Math.PI / 2;
+    
+    // Calculate new start and end points
+    element.start.x = centerX - (length / 2) * Math.cos(newAngle);
+    element.start.y = centerY - (length / 2) * Math.sin(newAngle);
+    element.end.x = centerX + (length / 2) * Math.cos(newAngle);
+    element.end.y = centerY + (length / 2) * Math.sin(newAngle);
+    
+    // Preserve width if it exists
+    if (element.end.width) {
+        const width = element.end.width;
+        element.end = {
+            x: element.end.x,
+            y: element.end.y,
+            width: width
+        };
+    }
+    
+    updateElementList();
+    redraw();
+}
+
+function deleteElement(index) {
+    elements.splice(index, 1);
+    if (selectedElementIndex === index) {
+        selectedElementIndex = null;
+        document.getElementById('editSection').style.display = 'none';
+    } else if (selectedElementIndex > index) {
+        selectedElementIndex--;
+    }
+    updateElementList();
+    redraw();
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const point = snapToGrid({
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    });
+
+    if (e.button === 2) {
+        // Right click - cancel or deselect
+        if (isDrawing) {
+            isDrawing = false;
+            startPoint = null;
+            tempElement = null;
+        } else {
+            selectedElementIndex = null;
+            document.getElementById('editSection').style.display = 'none';
+            updateElementList();
+        }
+        redraw();
+        return;
+    }
+
+    // Check if clicking on selected element to drag
+    if (selectedElementIndex !== null && !isDrawing) {
+        const element = elements[selectedElementIndex];
+        if (element.type === 'bed' || element.type === 'bookshelf' || element.type === 'wardrobe' || element.type === 'radiator') {
+            // Check if click is near the element
+            const midX = (element.start.x + element.end.x) / 2;
+            const midY = (element.start.y + element.end.y) / 2;
+            const dist = Math.sqrt(Math.pow(point.x - midX, 2) + Math.pow(point.y - midY, 2));
+            
+            if (dist < 50) { // Within 50px of center
+                isDragging = true;
+                dragOffset = {
+                    startX: element.start.x - point.x,
+                    startY: element.start.y - point.y,
+                    endX: element.end.x - point.x,
+                    endY: element.end.y - point.y
+                };
+                return;
+            }
+        }
+    }
+
+    if (currentTool === 'point') {
+        const label = prompt('Enter label for this point (e.g., "Switch", "Outlet"):');
+        elements.push({ type: 'point', point, label });
+        updateElementList();
+        redraw();
+        return;
+    }
+
+    if (!isDrawing) {
+        startPoint = point;
+        isDrawing = true;
+    } else {
+        // Finish drawing
+        const newElement = {
+            type: currentTool,
+            start: startPoint,
+            end: point
+        };
+        
+        // For bed and bookshelf, store the width
+        if (currentTool === 'bed') {
+            newElement.end = { 
+                x: point.x, 
+                y: point.y, 
+                width: 1.4 // default bed width
+            };
+        } else if (currentTool === 'bookshelf') {
+            newElement.end = { 
+                x: point.x, 
+                y: point.y, 
+                width: 0.3 // default bookshelf width
+            };
+        }
+        
+        elements.push(newElement);
+        isDrawing = false;
+        startPoint = null;
+        tempElement = null;
+        updateElementList();
+        redraw();
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const point = snapToGrid({
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    });
+
+    if (isDragging && selectedElementIndex !== null) {
+        const element = elements[selectedElementIndex];
+        element.start.x = point.x + dragOffset.startX;
+        element.start.y = point.y + dragOffset.startY;
+        element.end.x = point.x + dragOffset.endX;
+        element.end.y = point.y + dragOffset.endY;
+        redraw();
+        return;
+    }
+
+    if (!isDrawing || !startPoint) return;
+
+    tempElement = point;
+    redraw();
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+        isDragging = false;
+        dragOffset = null;
+    }
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // ESC key - cancel or deselect
+        if (isDrawing) {
+            isDrawing = false;
+            startPoint = null;
+            tempElement = null;
+        } else if (selectedElementIndex !== null) {
+            selectedElementIndex = null;
+            document.getElementById('editSection').style.display = 'none';
+            updateElementList();
+        }
+        redraw();
+    }
+});
+
+function clearCanvas() {
+    if (confirm('Clear all elements?')) {
+        elements = [];
+        isDrawing = false;
+        startPoint = null;
+        tempElement = null;
+        selectedElementIndex = null;
+        updateElementList();
+        redraw();
+    }
+}
+
+function undo() {
+    elements.pop();
+    if (selectedElementIndex >= elements.length) {
+        selectedElementIndex = null;
+    }
+    updateElementList();
+    redraw();
+}
+
+function toggleGrid() {
+    showGrid = !showGrid;
+    redraw();
+}
+
+function saveToJSON() {
+    const now = new Date();
+    const data = {
+        version: '1.0',
+        projectName: projectName,
+        created: now.toISOString(),
+        scale: scale,
+        elements: elements
+    };
+    
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create filename from project name and date
+    const dateStr = now.toISOString().slice(0, 10);
+    const safeName = projectName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const filename = `${safeName}-${dateStr}.json`;
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function loadFromJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (data.elements && Array.isArray(data.elements)) {
+                elements = data.elements;
+                selectedElementIndex = null;
+                
+                // Restore project name if available
+                if (data.projectName) {
+                    projectName = data.projectName;
+                    document.getElementById('projectName').value = data.projectName;
+                }
+                
+                updateElementList();
+                redraw();
+                alert(`Design "${data.projectName || 'Untitled'}" loaded successfully!`);
+            } else {
+                alert('Invalid file format');
+            }
+        } catch (error) {
+            alert('Error loading file: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input so the same file can be loaded again
+    event.target.value = '';
+}
+
+// Initial draw
+updateElementList();
+redraw();
